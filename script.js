@@ -18,14 +18,30 @@ if (navigator.geolocation) {
     function (position) {
       const { latitude, longitude } = position.coords;
 
-      // L - global namespace
+      // L - global namespace Leaflet
+      // map
       const map = L.map('map').setView([latitude, longitude], 15);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
-      L.marker([latitude, longitude]).addTo(map).bindPopup('A pretty CSS3 popup.<br> Easily customizable.').openPopup();
-      //   console.log(`https://www.google.com.ua/maps/@${latitude},${longitude}`);
+      // Event listener
+      map.on('click', function (e) {
+        const { lat, lng } = e.latlng;
+
+        // Creating of Popup
+        const popup = L.popup({
+          maxWidth: 250,
+          minWidth: 100,
+          autoClose: false,
+          closeOnClick: false,
+          className: 'running-popup',
+        }).setContent('Workout');
+
+        // Creating of Marker
+        L.marker([lat, lng]).addTo(map).bindPopup(popup).openPopup();
+      });
     },
     function (error) {
       console.log(error);
