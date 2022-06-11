@@ -20,6 +20,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 class App {
   #map;
   #mapEvent;
+  #mapZoomLevel = 15;
   #workouts = [];
   #athlete;
 
@@ -29,6 +30,7 @@ class App {
     form.addEventListener('submit', this._checkWorkoutForm.bind(this));
     formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
+    containerWorkouts.addEventListener('click', this.#moveToPopup.bind(this));
   }
 
   // Privat methods
@@ -50,7 +52,7 @@ class App {
 
     // L - global namespace Leaflet
     // map
-    this.#map = L.map('map').setView([latitude, longitude], 15);
+    this.#map = L.map('map').setView([latitude, longitude], this.#mapZoomLevel);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -67,6 +69,8 @@ class App {
   }
 
   _hideForm() {
+    // Clear input fields
+    form.querySelectorAll('input').forEach(el => (el.value = ''));
     form.classList.add('hidden');
   }
 
@@ -108,7 +112,8 @@ class App {
         [lat, lng],
         inputElevation.value
       );
-    } else {
+    }
+    if (inputType.value === 'running') {
       workout = new Running(
         inputDistance.value,
         inputDuration.value,
@@ -118,17 +123,12 @@ class App {
     }
 
     this.#workouts.push(workout);
-
-    this._renderWorkoutMarker(lat, lng);
-    this._renderWorkout(workout);
-
-    // Clear input fields
-    form.querySelectorAll('input').forEach(el => (el.value = ''));
+    this.#renderWorkoutMarker(workout);
+    this.#renderWorkout(workout);
+    this._hideForm();
   }
 
-  _renderWorkout(workout) {
-    console.log(workout);
-    console.log(this);
+  #renderWorkout(workout) {
     const li = document.createElement('li');
     li.classList.add(`workout`, `workout--${workout.name}`);
     li.dataset.id = workout.id;
@@ -167,7 +167,7 @@ class App {
         }</span>
       </div>
       <div class="workout__details workout__calories">
-        <span class="workout__icon">Calories burned:&nbsp;</span>
+        <span class="workout__value">Calories burned:&nbsp;</span>
         <span class="workout__value">${
           workout.name === 'cycling' ? workout.calories : workout.cadence // TODO
         }</span>
@@ -175,22 +175,41 @@ class App {
       </div>
     `;
     containerWorkouts.firstElementChild.insertAdjacentElement('afterend', li);
-
-    this._hideForm();
   }
 
-  _renderWorkoutMarker(lat, lng) {
+  #renderWorkoutMarker(workout) {
     // Creating of Popup
     const popup = L.popup({
       maxWidth: 250,
       minWidth: 100,
       autoClose: false,
       closeOnClick: false,
-      className: 'running-popup',
-    }).setContent('Workout');
+      className: `${
+        workout.name === 'cycling' ? 'cycling-popup' : 'running-popup'
+      }`,
+    }).setContent(
+      `${
+        workout.name === 'cycling'
+          ? '🚴‍♀️ Cycling on ' + workout.date
+          : '🏃‍♂️ Running on ' + workout.date
+      }`
+    );
 
     // Creating of Marker
-    L.marker([lat, lng]).addTo(this.#map).bindPopup(popup).openPopup();
+    L.marker(workout.coords).addTo(this.#map).bindPopup(popup).openPopup();
+  }
+
+  #moveToPopup(e) {
+    const target = e.target.closest('.workout');
+    if (target) {
+      const id = target.dataset.id;
+      const position = this.#workouts.find(el => el.id === id);
+
+      this.#map.setView(position.coords, this.#mapZoomLevel, {
+        animate: true,
+        duration: 0.7,
+      });
+    }
   }
 
   #createAthlete() {
@@ -202,7 +221,8 @@ class App {
     );
 
     console.log(this.#athlete);
-    // Clear input fields
+
+    // Disabled input fields
     formAthlete
       .querySelectorAll('input')
       .forEach(el => el.setAttribute('disabled', 'disabled'));
