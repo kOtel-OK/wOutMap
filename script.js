@@ -1,8 +1,5 @@
 'use strict';
 
-// prettier-ignore
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
 const form = document.querySelector('.form_workout');
 const formAthlete = document.querySelector('.form_athlete');
 const containerWorkouts = document.querySelector('.workouts');
@@ -18,6 +15,7 @@ const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
 class App {
+  #storage = window.localStorage;
   #map;
   #mapEvent;
   #mapZoomLevel = 15;
@@ -25,16 +23,25 @@ class App {
   #athlete;
 
   constructor() {
+    if (this.#storage.length > 0) {
+      this.#getLocalStorage();
+    } else {
+      formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
+    }
     // As a constuctor fired first, put here all the listeneres and init function
     // this.getPosition();
     form.addEventListener('submit', this._checkWorkoutForm.bind(this));
-    formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
     containerWorkouts.addEventListener('click', this.#moveToPopup.bind(this));
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        this._hideForm();
+      }
+    });
   }
 
   // Privat methods
-  #getPosition() {
+  _getPosition() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         // callback, calls when will be ready
@@ -60,6 +67,12 @@ class App {
 
     // Event listener
     this.#map.on('click', this._showForm.bind(this));
+
+    // Render workouts and markers
+    this.#workouts.forEach(el => {
+      this.#renderWorkout(el);
+      this.#renderWorkoutMarker(el);
+    });
   }
 
   _showForm(e) {
@@ -123,9 +136,12 @@ class App {
     }
 
     this.#workouts.push(workout);
+    this.#storage.setItem('workouts', JSON.stringify(this.#workouts));
     this.#renderWorkoutMarker(workout);
     this.#renderWorkout(workout);
     this._hideForm();
+
+    console.log(this.#athlete);
   }
 
   #renderWorkout(workout) {
@@ -213,31 +229,43 @@ class App {
   }
 
   #createAthlete() {
-    this.#athlete = new Athlete(
-      inputGender.value,
-      inputAge.value,
-      inputWeight.value,
-      inputHeight.value
-    );
+    this.#athlete = {
+      id: String(Date.now()).slice(-10),
+      gender: inputGender.value,
+      age: inputAge.value,
+      weight: inputWeight.value,
+      height: inputHeight.value,
+    };
 
-    console.log(this.#athlete);
+    this.#disableAthletFields();
+    this.#storage.setItem('athlete', JSON.stringify(this.#athlete));
+    this._getPosition();
+  }
 
-    // Disabled input fields
+  #disableAthletFields() {
     formAthlete
       .querySelectorAll('input')
       .forEach(el => el.setAttribute('disabled', 'disabled'));
 
     inputGender.setAttribute('disabled', 'disabled');
     formAthlete.classList.add('form_athlete--active');
+  }
 
-    this.getPosition();
+  #getLocalStorage() {
+    this.#athlete = JSON.parse(this.#storage.getItem('athlete'));
+    this.#workouts =
+      JSON.parse(this.#storage.getItem('workouts')) || this.#workouts;
+
+    inputGender.value = this.#athlete.gender;
+    inputAge.value = this.#athlete.age;
+    inputWeight.value = this.#athlete.weight;
+    inputHeight.value = this.#athlete.height;
+
+    this.#disableAthletFields();
+    this._getPosition();
   }
 
   // Public API
-  getPosition() {
-    this.#getPosition();
-  }
-
   getAthlete() {
     return this.#athlete;
   }
@@ -246,7 +274,6 @@ class App {
 class Workout {
   athlete = app.getAthlete();
   id = String(Date.now()).slice(-10);
-  // locale = navigator.language;
   date = new Intl.DateTimeFormat('en-us', {
     year: 'numeric',
     month: 'long',
@@ -300,17 +327,6 @@ class Running extends Workout {
 
   calcPace() {
     this.pace = (this.duration / this.distance).toFixed(1);
-  }
-}
-
-class Athlete {
-  id = String(Date.now()).slice(-10);
-
-  constructor(gender, age, weight, height) {
-    this.gender = gender;
-    this.age = age;
-    this.weight = weight;
-    this.height = height;
   }
 }
 
