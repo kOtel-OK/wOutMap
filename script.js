@@ -331,3 +331,15 @@ class Running extends Workout {
 }
 
 const app = new App();
+
+// TODO
+// 1. Edit workout
+// 2. Delete workout
+// 3. Remove all workouts
+// 4. Sort workouts by certain field (duration)
+// 5. Re-build Running and Cycling objects coming from local storage
+// 6. More realistic error and confirmation messages
+// 7. Position the map to show ALL workouts -- Leaflet API
+// 8. Draw line and chapes instead of points -- Leaflet API
+// 8. Geocode location from coordinates -- asynchronous
+// 9. Display weather for workouts  place and time -- asynchronous
