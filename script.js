@@ -3,6 +3,7 @@
 const form = document.querySelector('.form_workout');
 const formAthlete = document.querySelector('.form_athlete');
 const containerWorkouts = document.querySelector('.workouts');
+const athleteEdit = document.querySelector('.athlete__edit');
 
 const inputGender = document.querySelector('.form__input--gender');
 const inputAge = document.querySelector('.form__input--age');
@@ -24,10 +25,11 @@ class App {
 
   constructor() {
     if (this.#storage.length > 0) {
+      console.log('local');
       this.#getLocalStorage();
-    } else {
-      formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
-    }
+    } 
+
+    formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
     // As a constuctor fired first, put here all the listeneres and init function
     // this.getPosition();
     form.addEventListener('submit', this._checkWorkoutForm.bind(this));
@@ -93,7 +95,8 @@ class App {
     );
   }
 
-  _checkWorkoutForm() {
+  _checkWorkoutForm(e) {
+    e.preventDefault();
     const formFieldsValues = [...form.querySelectorAll('input')]
       .filter(el => !el.closest('div').classList.contains('form__row--hidden'))
       .map(el => el.value);
@@ -103,7 +106,9 @@ class App {
     this._newWorkout();
   }
 
-  _checkAthleteForm() {
+  _checkAthleteForm(e) {
+    e.preventDefault();
+    console.log('click');
     if (
       ![...formAthlete.querySelectorAll('input')].every(
         el => el.value && isFinite(el.value) && el.value > 0
@@ -112,6 +117,17 @@ class App {
       return;
 
     this.#createAthlete();
+  }
+
+  _editAthlete(e) {
+    e.preventDefault();
+    // this.#enableAthletFields();
+    formAthlete
+    .querySelectorAll('input')
+    .forEach(el => el.removeAttribute('disabled'));
+
+  inputGender.removeAttribute('disabled');
+  formAthlete.classList.add('form_athlete--active');
   }
 
   _newWorkout() {
@@ -229,6 +245,7 @@ class App {
   }
 
   #createAthlete() {
+   
     this.#athlete = {
       id: String(Date.now()).slice(-10),
       gender: inputGender.value,
@@ -236,9 +253,13 @@ class App {
       weight: inputWeight.value,
       height: inputHeight.value,
     };
-
+    
     this.#disableAthletFields();
+    this.#enableAthleteEdit();
     this.#storage.setItem('athlete', JSON.stringify(this.#athlete));
+    console.log(this.#athlete);
+    if (this.#map) return;
+
     this._getPosition();
   }
 
@@ -249,6 +270,11 @@ class App {
 
     inputGender.setAttribute('disabled', 'disabled');
     formAthlete.classList.add('form_athlete--active');
+  }
+
+  #enableAthleteEdit() {
+    athleteEdit.classList.remove('athlete__edit--hidden');
+    athleteEdit.addEventListener('click', this._editAthlete.bind(this));
   }
 
   #getLocalStorage() {
@@ -262,6 +288,7 @@ class App {
     inputHeight.value = this.#athlete.height;
 
     this.#disableAthletFields();
+    this.#enableAthleteEdit();
     this._getPosition();
   }
 
@@ -333,9 +360,29 @@ class Running extends Workout {
 const app = new App();
 
 // TODO
+// 0. Edit an athlete
+  // Add 'Edit' label on the top of athlet section
+    // Add EventListener
+     // When click - remove 'disable' attribute from inputs
+     // When click 'ENTER' - overwrite Athlet object
+     // Add 'disabled' attribute to inputs
+
+     
 // 1. Edit workout
+  // Display edit button on workout when it hovered (slide from left side)
+ 
+
 // 2. Delete workout
+  // Display delete button on workout when it hovered (slide from left side)
+  // When click - display confirmation window - 'Are you sure?'
+    // If Yes
+      // Remove workout from sidebar
+      // Remove workout from array
+   // If No
+      // Close popup window
 // 3. Remove all workouts
+  // Add remove button
+  // When click - add confirmation popup window - 'Are you sure?'
 // 4. Sort workouts by certain field (duration)
 // 5. Re-build Running and Cycling objects coming from local storage
 // 6. More realistic error and confirmation messages
@@ -343,3 +390,5 @@ const app = new App();
 // 8. Draw line and chapes instead of points -- Leaflet API
 // 8. Geocode location from coordinates -- asynchronous
 // 9. Display weather for workouts  place and time -- asynchronous
+
+
