@@ -27,7 +27,7 @@ class App {
     if (this.#storage.length > 0) {
       console.log('local');
       this.#getLocalStorage();
-    } 
+    }
 
     formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
     // As a constuctor fired first, put here all the listeneres and init function
@@ -123,11 +123,11 @@ class App {
     e.preventDefault();
     // this.#enableAthletFields();
     formAthlete
-    .querySelectorAll('input')
-    .forEach(el => el.removeAttribute('disabled'));
+      .querySelectorAll('input')
+      .forEach(el => el.removeAttribute('disabled'));
 
-  inputGender.removeAttribute('disabled');
-  formAthlete.classList.add('form_athlete--active');
+    inputGender.removeAttribute('disabled');
+    formAthlete.classList.add('form_athlete--active');
   }
 
   _newWorkout() {
@@ -151,16 +151,40 @@ class App {
       );
     }
 
-    this.#workouts.push(workout);
-    this.#storage.setItem('workouts', JSON.stringify(this.#workouts));
-    this.#renderWorkoutMarker(workout);
-    this.#renderWorkout(workout);
-    this._hideForm();
+    workout
+      .getWeather(lat, lng)
+      .then(weatherData => {
+        let date = new Date().toISOString();
+        date = date.slice(0, date.indexOf(':')) + ':00';
 
-    console.log(this.#athlete);
+        const {
+          time,
+          relativehumidity_2m: humidity,
+          temperature_2m: temperature,
+          windspeed_10m: windspeed,
+        } = weatherData.hourly;
+
+        const weatherArrayIndex = time.findIndex(el => el === date);
+
+        workout.weather = {
+          time: time[weatherArrayIndex],
+          humidity: humidity[weatherArrayIndex],
+          temperature: temperature[weatherArrayIndex],
+          windspeed: windspeed[weatherArrayIndex],
+        };
+      })
+      .catch(err => console.log(err))
+      .finally(() => {
+        this.#workouts.push(workout);
+        this.#storage.setItem('workouts', JSON.stringify(this.#workouts));
+        this.#renderWorkoutMarker(workout);
+        this.#renderWorkout(workout);
+        this._hideForm();
+      });
   }
 
   #renderWorkout(workout) {
+    // console.log(workout);
     const li = document.createElement('li');
     li.classList.add(`workout`, `workout--${workout.name}`);
     li.dataset.id = workout.id;
@@ -211,6 +235,23 @@ class App {
 
   #renderWorkoutMarker(workout) {
     // Creating of Popup
+    const div = document.createElement('div');
+
+    const temperature = workout.weather?.temperature ?? 0;
+    const humidity = workout.weather?.humidity ?? 0;
+    const windspeed = workout.weather?.windspeed ?? 0;
+
+    div.innerHTML = `
+      <div>
+      ${
+        workout.name === 'cycling'
+          ? '🚴‍♀️ Cycling on ' + workout.date
+          : '🏃‍♂️ Running on ' + workout.date
+      }
+      </div>
+      <div class="additional__info"><span>${temperature}°C</span><span>${humidity}%</span><span>${windspeed}km/h</span></div>
+      `;
+
     const popup = L.popup({
       maxWidth: 250,
       minWidth: 100,
@@ -219,13 +260,7 @@ class App {
       className: `${
         workout.name === 'cycling' ? 'cycling-popup' : 'running-popup'
       }`,
-    }).setContent(
-      `${
-        workout.name === 'cycling'
-          ? '🚴‍♀️ Cycling on ' + workout.date
-          : '🏃‍♂️ Running on ' + workout.date
-      }`
-    );
+    }).setContent(div);
 
     // Creating of Marker
     L.marker(workout.coords).addTo(this.#map).bindPopup(popup).openPopup();
@@ -245,7 +280,6 @@ class App {
   }
 
   #createAthlete() {
-   
     this.#athlete = {
       id: String(Date.now()).slice(-10),
       gender: inputGender.value,
@@ -253,7 +287,7 @@ class App {
       weight: inputWeight.value,
       height: inputHeight.value,
     };
-    
+
     this.#disableAthletFields();
     this.#enableAthleteEdit();
     this.#storage.setItem('athlete', JSON.stringify(this.#athlete));
@@ -312,6 +346,19 @@ class Workout {
     this.duration = duration; // min
     this.coords = coords; // [lat, lng]
   }
+
+  getWeather(lat, lng) {
+    return new Promise(function (resolve, reject) {
+      fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relativehumidity_2m,windspeed_10m`
+      )
+        .then(response => {
+          console.log(response);
+          return response.json();
+        })
+        .then(resolve, reject);
+    });
+  }
 }
 
 class Cycling extends Workout {
@@ -361,28 +408,27 @@ const app = new App();
 
 // TODO
 // 0. Edit an athlete
-  // Add 'Edit' label on the top of athlet section
-    // Add EventListener
-     // When click - remove 'disable' attribute from inputs
-     // When click 'ENTER' - overwrite Athlet object
-     // Add 'disabled' attribute to inputs
+// Add 'Edit' label on the top of athlet section
+// Add EventListener
+// When click - remove 'disable' attribute from inputs
+// When click 'ENTER' - overwrite Athlet object
+// Add 'disabled' attribute to inputs
 
-     
 // 1. Edit workout
-  // Display edit button on workout when it hovered (slide from left side)
- 
+// Display edit button on workout when it hovered (slide from left side)
 
 // 2. Delete workout
-  // Display delete button on workout when it hovered (slide from left side)
-  // When click - display confirmation window - 'Are you sure?'
-    // If Yes
-      // Remove workout from sidebar
-      // Remove workout from array
-   // If No
-      // Close popup window
+// Display delete button on workout when it hovered (slide from left side)
+// When click - display confirmation window - 'Are you sure?'
+// If Yes
+// Remove workout from sidebar
+// Remove marker from map
+// Remove workout from array
+// If No
+// Close popup window
 // 3. Remove all workouts
-  // Add remove button
-  // When click - add confirmation popup window - 'Are you sure?'
+// Add remove button
+// When click - add confirmation popup window - 'Are you sure?'
 // 4. Sort workouts by certain field (duration)
 // 5. Re-build Running and Cycling objects coming from local storage
 // 6. More realistic error and confirmation messages
@@ -390,5 +436,3 @@ const app = new App();
 // 8. Draw line and chapes instead of points -- Leaflet API
 // 8. Geocode location from coordinates -- asynchronous
 // 9. Display weather for workouts  place and time -- asynchronous
-
-
