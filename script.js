@@ -18,6 +18,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 class App {
   #storage = window.localStorage;
   #map;
+  #markerGroup;
   #mapEvent;
   #mapZoomLevel = 15;
   #workouts = [];
@@ -31,10 +32,19 @@ class App {
 
     formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
     // As a constuctor fired first, put here all the listeneres and init function
-    // this.getPosition();
     form.addEventListener('submit', this._checkWorkoutForm.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
-    containerWorkouts.addEventListener('click', this.#moveToPopup.bind(this));
+    containerWorkouts.addEventListener(
+      'click',
+      e => {
+        if (e.target.className === 'workout__delete') {
+          this.#removeWorkout(e.target.closest('.workout'));
+        } else {
+          this.#moveToPopup(e);
+        }
+      }
+      // this.#moveToPopup.bind(this)
+    );
     window.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         this._hideForm();
@@ -62,6 +72,7 @@ class App {
     // L - global namespace Leaflet
     // map
     this.#map = L.map('map').setView([latitude, longitude], this.#mapZoomLevel);
+    this.#markerGroup = L.layerGroup().addTo(this.#map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -183,15 +194,33 @@ class App {
       });
   }
 
+  #removeWorkout(workout) {
+    const id = workout.dataset.id;
+    const idx = this.#workouts.findIndex(el => el.id === id);
+    const marker = this.#workouts[idx].marker;
+
+    this.#workouts.splice(idx, 1);
+    this.#storage.setItem('workouts', JSON.stringify(this.#workouts));
+
+    containerWorkouts.innerHTML = '';
+
+    this.#markerGroup.removeLayer(marker);
+
+    this.#workouts.forEach(el => {
+      this.#renderWorkout(el);
+    });
+  }
+
   #renderWorkout(workout) {
-    // console.log(workout);
     const li = document.createElement('li');
+
     li.classList.add(`workout`, `workout--${workout.name}`);
     li.dataset.id = workout.id;
     li.innerHTML = `
       <h2 class="workout__title">${
         workout.name[0].toUpperCase() + workout.name.slice(1)
-      } on ${workout.date}</h2>
+      } on ${workout.date} </h2>
+      <div class="workout__delete--container"><span class="workout__delete">❌</span></div>
       <div class="workout__details">
         <span class="workout__icon">🚴‍♀️</span>
         <span class="workout__value">${workout.distance}</span>
@@ -230,7 +259,7 @@ class App {
       
       </div>
     `;
-    containerWorkouts.firstElementChild.insertAdjacentElement('afterend', li);
+    containerWorkouts.insertAdjacentElement('afterbegin', li);
   }
 
   #renderWorkoutMarker(workout) {
@@ -249,12 +278,12 @@ class App {
           : '🏃‍♂️ Running on ' + workout.date
       }
       </div>
-      <div class="additional__info"><span>${temperature}°C</span><span>${humidity}%</span><span>${windspeed}km/h</span></div>
+      <div class="additional__info"><span>🌡 ${temperature} °C</span><span>💧 ${humidity} %</span><span>💨 ${windspeed} km/h</span></div>
       `;
 
     const popup = L.popup({
       maxWidth: 250,
-      minWidth: 100,
+      minWidth: 200,
       autoClose: false,
       closeOnClick: false,
       className: `${
@@ -263,7 +292,10 @@ class App {
     }).setContent(div);
 
     // Creating of Marker
-    L.marker(workout.coords).addTo(this.#map).bindPopup(popup).openPopup();
+    const marker = L.marker(workout.coords);
+
+    marker.addTo(this.#markerGroup).bindPopup(popup).openPopup();
+    workout.marker = marker._leaflet_id;
   }
 
   #moveToPopup(e) {
@@ -291,7 +323,7 @@ class App {
     this.#disableAthletFields();
     this.#enableAthleteEdit();
     this.#storage.setItem('athlete', JSON.stringify(this.#athlete));
-    console.log(this.#athlete);
+
     if (this.#map) return;
 
     this._getPosition();
@@ -348,15 +380,15 @@ class Workout {
   }
 
   getWeather(lat, lng) {
-    return new Promise(function (resolve, reject) {
+    return new Promise(function (resolve) {
       fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relativehumidity_2m,windspeed_10m`
       )
         .then(response => {
-          console.log(response);
+          // console.log(response);
           return response.json();
         })
-        .then(resolve, reject);
+        .then(resolve);
     });
   }
 }
@@ -395,7 +427,6 @@ class Running extends Workout {
   constructor(distance, duration, coords, cadence) {
     super(distance, duration, coords);
     this.cadence = cadence;
-
     this.calcPace();
   }
 
@@ -407,6 +438,8 @@ class Running extends Workout {
 const app = new App();
 
 // TODO
+
+// prettier-ignore
 // 0. Edit an athlete
 // Add 'Edit' label on the top of athlet section
 // Add EventListener
@@ -414,9 +447,11 @@ const app = new App();
 // When click 'ENTER' - overwrite Athlet object
 // Add 'disabled' attribute to inputs
 
+// prettier-ignore
 // 1. Edit workout
 // Display edit button on workout when it hovered (slide from left side)
 
+// prettier-ignore
 // 2. Delete workout
 // Display delete button on workout when it hovered (slide from left side)
 // When click - display confirmation window - 'Are you sure?'
@@ -426,13 +461,19 @@ const app = new App();
 // Remove workout from array
 // If No
 // Close popup window
+
+// prettier-ignore
 // 3. Remove all workouts
 // Add remove button
 // When click - add confirmation popup window - 'Are you sure?'
+
+// prettier-ignore
 // 4. Sort workouts by certain field (duration)
 // 5. Re-build Running and Cycling objects coming from local storage
 // 6. More realistic error and confirmation messages
 // 7. Position the map to show ALL workouts -- Leaflet API
 // 8. Draw line and chapes instead of points -- Leaflet API
 // 8. Geocode location from coordinates -- asynchronous
+
+// prettier-ignore
 // 9. Display weather for workouts  place and time -- asynchronous

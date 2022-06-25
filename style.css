@@ -55,11 +55,15 @@ a:visited {
   margin-bottom: 4rem;
 }
 
-.workouts {
-  list-style: none;
+.workouts__container {
+  overflow: hidden;
   height: 77vh;
+}
+
+.workouts {
+  height: 100%;
+  list-style: none;
   overflow-y: scroll;
-  overflow-x: hidden;
 }
 
 .workouts::-webkit-scrollbar {
@@ -87,12 +91,23 @@ a:visited {
 .workout__title {
   font-size: 1.7rem;
   font-weight: 600;
-  grid-column: 1 / -1;
+  grid-column: 1 / -2;
 }
 
 .workout__details {
   display: flex;
   align-items: baseline;
+}
+
+.workout__delete--container {
+  display: flex;
+  justify-content: right;
+  align-items: center;
+}
+
+.workout__delete:hover {
+  transform: scale(2, 2) rotate(0.5turn);
+  transition: all 0.2s;
 }
 
 .workout__calories {
@@ -232,7 +247,8 @@ a:visited {
   display: grid;
   justify-items: center;
   grid-template-columns: 1fr 1fr 1fr;
-  font-size: 1.4rem;
+  font-size: 1.13rem;
+  padding-top: 5px;
 }
 
 .leaflet-popup .leaflet-popup-tip {
