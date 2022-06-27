@@ -26,25 +26,20 @@ class App {
 
   constructor() {
     if (this.#storage.length > 0) {
-      console.log('local');
-      this.#getLocalStorage();
+      this._getLocalStorage();
     }
 
     formAthlete.addEventListener('submit', this._checkAthleteForm.bind(this));
     // As a constuctor fired first, put here all the listeneres and init function
     form.addEventListener('submit', this._checkWorkoutForm.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
-    containerWorkouts.addEventListener(
-      'click',
-      e => {
-        if (e.target.className === 'workout__delete') {
-          this.#removeWorkout(e.target.closest('.workout'));
-        } else {
-          this.#moveToPopup(e);
-        }
+    containerWorkouts.addEventListener('click', e => {
+      if (e.target.className === 'workout__delete') {
+        this._removeWorkout(e.target.closest('.workout'));
+      } else {
+        this._moveToPopup(e);
       }
-      // this.#moveToPopup.bind(this)
-    );
+    });
     window.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         this._hideForm();
@@ -83,8 +78,8 @@ class App {
 
     // Render workouts and markers
     this.#workouts.forEach(el => {
-      this.#renderWorkout(el);
-      this.#renderWorkoutMarker(el);
+      this._renderWorkout(el);
+      this._renderWorkoutMarker(el);
     });
   }
 
@@ -127,7 +122,7 @@ class App {
     )
       return;
 
-    this.#createAthlete();
+    this._createAthlete();
   }
 
   _editAthlete(e) {
@@ -141,7 +136,7 @@ class App {
     formAthlete.classList.add('form_athlete--active');
   }
 
-  _newWorkout() {
+  async _newWorkout() {
     const { lat, lng } = this.#mapEvent.latlng;
     let workout;
 
@@ -161,40 +156,39 @@ class App {
         inputCadence.value
       );
     }
+    try {
+      const weatherData = await workout.getWeather(lat, lng);
 
-    workout
-      .getWeather(lat, lng)
-      .then(weatherData => {
-        let date = new Date().toISOString();
-        date = date.slice(0, date.indexOf(':')) + ':00';
+      let date = new Date().toISOString();
+      date = date.slice(0, date.indexOf(':')) + ':00';
 
-        const {
-          time,
-          relativehumidity_2m: humidity,
-          temperature_2m: temperature,
-          windspeed_10m: windspeed,
-        } = weatherData.hourly;
+      const {
+        time,
+        relativehumidity_2m: humidity,
+        temperature_2m: temperature,
+        windspeed_10m: windspeed,
+      } = weatherData.hourly;
 
-        const weatherArrayIndex = time.findIndex(el => el === date);
+      const weatherArrayIndex = time.findIndex(el => el === date);
 
-        workout.weather = {
-          time: time[weatherArrayIndex],
-          humidity: humidity[weatherArrayIndex],
-          temperature: temperature[weatherArrayIndex],
-          windspeed: windspeed[weatherArrayIndex],
-        };
-      })
-      .catch(err => console.log(err))
-      .finally(() => {
-        this.#workouts.push(workout);
-        this.#storage.setItem('workouts', JSON.stringify(this.#workouts));
-        this.#renderWorkoutMarker(workout);
-        this.#renderWorkout(workout);
-        this._hideForm();
-      });
+      workout.weather = {
+        time: time[weatherArrayIndex],
+        humidity: humidity[weatherArrayIndex],
+        temperature: temperature[weatherArrayIndex],
+        windspeed: windspeed[weatherArrayIndex],
+      };
+    } catch (error) {
+      err => console.log(err);
+    } finally {
+      this.#workouts.push(workout);
+      this.#storage.setItem('workouts', JSON.stringify(this.#workouts));
+      this._renderWorkoutMarker(workout);
+      this._renderWorkout(workout);
+      this._hideForm();
+    }
   }
 
-  #removeWorkout(workout) {
+  _removeWorkout(workout) {
     const id = workout.dataset.id;
     const idx = this.#workouts.findIndex(el => el.id === id);
     const marker = this.#workouts[idx].marker;
@@ -207,11 +201,11 @@ class App {
     this.#markerGroup.removeLayer(marker);
 
     this.#workouts.forEach(el => {
-      this.#renderWorkout(el);
+      this._renderWorkout(el);
     });
   }
 
-  #renderWorkout(workout) {
+  _renderWorkout(workout) {
     const li = document.createElement('li');
 
     li.classList.add(`workout`, `workout--${workout.name}`);
@@ -262,7 +256,7 @@ class App {
     containerWorkouts.insertAdjacentElement('afterbegin', li);
   }
 
-  #renderWorkoutMarker(workout) {
+  _renderWorkoutMarker(workout) {
     // Creating of Popup
     const div = document.createElement('div');
 
@@ -298,7 +292,7 @@ class App {
     workout.marker = marker._leaflet_id;
   }
 
-  #moveToPopup(e) {
+  _moveToPopup(e) {
     const target = e.target.closest('.workout');
     if (target) {
       const id = target.dataset.id;
@@ -311,7 +305,7 @@ class App {
     }
   }
 
-  #createAthlete() {
+  _createAthlete() {
     this.#athlete = {
       id: String(Date.now()).slice(-10),
       gender: inputGender.value,
@@ -320,8 +314,8 @@ class App {
       height: inputHeight.value,
     };
 
-    this.#disableAthletFields();
-    this.#enableAthleteEdit();
+    this._disableAthletFields();
+    this._enableAthleteEdit();
     this.#storage.setItem('athlete', JSON.stringify(this.#athlete));
 
     if (this.#map) return;
@@ -329,7 +323,7 @@ class App {
     this._getPosition();
   }
 
-  #disableAthletFields() {
+  _disableAthletFields() {
     formAthlete
       .querySelectorAll('input')
       .forEach(el => el.setAttribute('disabled', 'disabled'));
@@ -338,12 +332,12 @@ class App {
     formAthlete.classList.add('form_athlete--active');
   }
 
-  #enableAthleteEdit() {
+  _enableAthleteEdit() {
     athleteEdit.classList.remove('athlete__edit--hidden');
     athleteEdit.addEventListener('click', this._editAthlete.bind(this));
   }
 
-  #getLocalStorage() {
+  _getLocalStorage() {
     this.#athlete = JSON.parse(this.#storage.getItem('athlete'));
     this.#workouts =
       JSON.parse(this.#storage.getItem('workouts')) || this.#workouts;
@@ -353,8 +347,8 @@ class App {
     inputWeight.value = this.#athlete.weight;
     inputHeight.value = this.#athlete.height;
 
-    this.#disableAthletFields();
-    this.#enableAthleteEdit();
+    this._disableAthletFields();
+    this._enableAthleteEdit();
     this._getPosition();
   }
 
@@ -379,17 +373,20 @@ class Workout {
     this.coords = coords; // [lat, lng]
   }
 
-  getWeather(lat, lng) {
-    return new Promise(function (resolve) {
-      fetch(
+  async getWeather(lat, lng) {
+    try {
+      const weather = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relativehumidity_2m,windspeed_10m`
-      )
-        .then(response => {
-          // console.log(response);
-          return response.json();
-        })
-        .then(resolve);
-    });
+      );
+      console.log(weather);
+      if (!weather.ok) {
+        throw new Error('Problem with weather service!');
+      }
+
+      return await weather.json();
+    } catch (error) {
+      console.log(error);
+    }
   }
 }
 
