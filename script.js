@@ -3,6 +3,7 @@
 const form = document.querySelector('.form_workout');
 const formAthlete = document.querySelector('.form_athlete');
 const containerWorkouts = document.querySelector('.workouts');
+const containerMap = document.getElementById('map');
 const athleteEdit = document.querySelector('.athlete__edit');
 
 const inputGender = document.querySelector('.form__input--gender');
@@ -55,6 +56,10 @@ class App {
         // as a regular function, so bind THIS
         this._loadMap.bind(this),
         function (error) {
+          const div = document.createElement('div');
+          div.classList.add('error__window');
+          div.textContent = 'Allow geolocation and refresh the page...';
+          containerMap.insertAdjacentElement('afterbegin', div);
           console.log(error);
         }
       );
@@ -378,7 +383,6 @@ class Workout {
       const weather = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,relativehumidity_2m,windspeed_10m`
       );
-      console.log(weather);
       if (!weather.ok) {
         throw new Error('Problem with weather service!');
       }

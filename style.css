@@ -1,5 +1,5 @@
 :root {
-  --color-brand--1: #ffb545;
+  --color-brand--1: #fc5200;
   --color-brand--2: #00c46a;
 
   --color-dark--1: #2d3439;
@@ -149,7 +149,7 @@ a:visited {
 
 .form_athlete--active {
   background-color: #2d3439;
-  border: 3px solid #00c56a;
+  border: 1px solid #fc5200;
   transition: all 0.5s;
 }
 
@@ -222,6 +222,14 @@ a:visited {
 .twitter-link:hover,
 .twitter-link:active {
   color: var(--color-light--2);
+}
+
+.error__window {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 1.5rem;
 }
 
 /* MAP */
